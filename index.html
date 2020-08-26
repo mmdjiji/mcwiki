@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<!--
+   This is MDwiki v0.6.2
+   (C) 2013 by Timo Dörr and contributors. This software is licensed
+   under the terms of the GNU GPLv3 with additional terms applied.
+   See http://github.com/Dynalon/mdwiki for a copy of the source code.
+   This documentation is translated by JiJi from wiki.vg.
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="fragment" content="!">
+
+    <title>Minecraft 中文文档</title>
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.png" />
+
+    <link rel="stylesheet" href="http://cdn.bootcss.com/bootstrap/3.3.5/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" />
+    <link rel="stylesheet" href="css/colorbox.css" />
+    <link rel="stylesheet" href="css/theme.css" />
+    <style>
+        /* hide the main content while we assemble everything */
+        .md-hidden-load { display:  none; }
+
+        .anchor-highlight {
+            font-size:      0.7em;
+            margin-left:    0.25em;
+        }
+        /* for pageContentMenu */
+        #md-page-menu { position:  static; }
+
+        #md-page-menu a.active {
+         /* background-color:    rgba(0, 0, 0, 0.01); */
+            font-weight:         bold;
+            padding-left:        6px;
+        }
+        @media (min-width: 992px) {
+            #md-page-menu.affix { position:  fixed; }
+        }
+        @media (min-width: 768px) {
+            .md-float-left .col-sm-8,
+            .md-float-right .col-sm-8 {
+                max-width:    66.67%;
+            }
+            .md-float-left .col-sm-4,
+            .md-float-right .col-sm-4 {
+                max-width:    33.33%;
+            }
+            .md-float-left .col-sm-2,
+            .md-float-right .col-sm-2 {
+                max-width:    16.67%;
+            }
+        }
+        @media (max-width: 992px) {
+            a.forkmeongithub { display:  none; }
+        }
+        @media (max-width: 768px) {
+            /* don't use floating for smaller screens */
+            .md-float-left .col-sm-8,
+            .md-float-left .col-sm-4,
+            .md-float-left .col-sm-2  {
+                width:        100%;
+                max-width:    100%  !important;
+                min-width:    100%;
+            }
+            .md-float-right .col-sm-8,
+            .md-float-right .col-sm-4,
+            .md-float-right .col-sm-2  {
+                width:        100%;
+                max-width:    100%  !important;
+                min-width:    100%;
+            }
+        }
+        /* md-text is not of md-col-* but needs the spacing */
+        .md-floatenv .md-text {
+            margin-left:     15px;
+            margin-right:    15px;
+        }
+
+        /* float images */
+        .md-float-left .col-sm-8,
+        .md-float-left .col-sm-4,
+        .md-float-left .col-sm-2  {
+            width:    auto;
+        }
+        .md-float-right .col-sm-8,
+        .md-float-right .col-sm-4,
+        .md-float-right .col-sm-2  {
+            float:    right  !important;
+            width:    auto;
+        }
+        #md-all .md-copyright-footer {
+            font-size:    smaller;
+            padding:      1em;
+        }
+
+        /* Some Widget which using document.write()
+           can be plug in MarkDown with iframe wrapped */
+        iframe {
+            width:         100%;
+            min-height:    18em;
+        }
+    </style>
+    <script src="javascript/EasyImport.js"></script><script>
+        ImportJS([
+            {
+                'http://cdn.bootcss.com/jquery/1.11.3/jquery.min.js':    (! $.browser.modern),
+                'http://cdn.bootcss.com/jquery/2.1.4/jquery.min.js':     $.browser.modern
+            },
+            [
+                'http://cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js',
+                'http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js',
+                'http://cdn.bootcss.com/jquery.colorbox/1.6.3/jquery.colorbox-min.js'
+            ],
+            'MDwiki.min.js'
+        ]);
+    </script>
+</head><body>
+    <noscript>
+        This website requires Javascript to be enabled. Please turn on Javascript
+        and reload the page.
+    </noscript>
+
+    <div id="md-all">
+    </div>
+</body></html>
