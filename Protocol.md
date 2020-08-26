@@ -93,7 +93,11 @@ Note: 本文是关于Minecraft Java版本([1.15.2, protocol578](Protocol_version
     - [实体位置与旋转](#实体位置与旋转)
     - [实体旋转](#实体旋转)
     - [实体运动](#实体运动)
-    - [Vehicle Move (clientbound)](#vehicle-move-clientbound)
+    - [车辆移动 (客户端)](#车辆移动-客户端)
+    - [打开书](#打开书)
+    - [打开窗口](#打开窗口)
+    - [打开签名编辑器](#打开签名编辑器)
+    - [Craft Recipe Response](#craft-recipe-response)
 
 <!-- /TOC -->
 
@@ -490,11 +494,11 @@ Java缺乏对分数整数的直接支持，但可以将它们表示为整数。�
 7. S→C: [设置压缩](#设置压缩) (可选)
 8. S→C: [登录成功](#登录成功)
 
-设置压缩，如果启用，必须在登录成功之前发送。 请注意，在设置压缩之后发送的任何内容都必须使用 [Post Compression packet format](https://wiki.vg/Protocol#With_compression)
+设置压缩，如果启用，必须在登录成功之前发送。 请注意，在设置压缩之后发送的任何内容都必须使用 [有压缩](#有压缩)
 
 对于未经身份验证的（“破解版”/离线模式）和本地主机连接（这两个条件中的任何一个都足以用于未加密的连接），没有加密。在这种情况下 [开始登录](#开始登录) 后直接 [登录成功](#登录成功) 。
 
-参加 [Protocol Encryption](https://wiki.vg/Protocol_Encryption) 以获取更多细节
+参见 [协议加密](Protocol_Encryption.md) 以获取更多细节
 
 ### 客户端
 
@@ -528,7 +532,7 @@ Java缺乏对分数整数的直接支持，但可以将它们表示为整数。�
 
 此数据包将连接状态切换到 [游玩](#游玩) 。
 
-Warning: 服务器可能需要一点时间才能完全转换到游玩状态，因此建议在发送游玩数据包之前等待，方法是设置超时，或者等待来自服务器的游玩数据包(通常是[Player Info](https://wiki.vg/Protocol#Player_Info))。Notchian客户端在下一个时钟的 [time update](https://wiki.vg/Protocol#Time_Update) 包之前不发送任何心跳包 ([keep alive](https://wiki.vg/Protocol#Keep_Alive)) 。
+Warning: 服务器可能需要一点时间才能完全转换到游玩状态，因此建议在发送游玩数据包之前等待，方法是设置超时，或者等待来自服务器的游玩数据包(通常是 [玩家信息](#玩家信息) )。Notchian客户端在下一个时钟的 [time update](https://wiki.vg/Protocol#Time_Update) 包之前不发送任何心跳包 ( [保持活动](#保持活动-客户端) ) 。
 
 #### 设置压缩
 
@@ -1284,7 +1288,7 @@ mod和插件可以使用它来发送他们的数据。Minecraft本身使用几�
 
 #### 打开马窗口
 
-此包专门用于打开马窗口。[打开窗口](https://wiki.vg/Protocol#Open_Window)用于所有其他GUI。
+此包专门用于打开马窗口。[打开窗口](#打开窗口)用于所有其他GUI。
 
 |   包ID: `0x20`   | 状态: `Play` | 绑定到: 客户端 |
 | :--------------: | :----------: | :------------: |
@@ -1622,7 +1626,7 @@ Warning: 此页需要添加以下信息：现在生物群落是如何运作的�
 | **字段名称** | **字段类型** |    **备注**    |
 |  Entity ID   |    VarInt    |     实体ID     |
 
-#### Vehicle Move (clientbound)
+#### 车辆移动 (客户端)
 
 请注意，所有字段都使用绝对位置，不允许使用相对位置。
 
@@ -1635,8 +1639,46 @@ Warning: 此页需要添加以下信息：现在生物群落是如何运作的�
 |     Yaw      |    Float     | 垂直轴上的绝对旋转，以度为单位 |
 |    Pitch     |    Float     | 水平轴上的绝对旋转，以度为单位 |
 
+#### 打开书
+
+当玩家右击已签名的书时发送，这告诉客户机打开书的GUI。
+
+| 包ID: `0x2E` | 状态: `Play` |      绑定到: 客户端       |
+| :----------: | :----------: | :-----------------------: |
+| **字段名称** | **字段类型** |         **备注**          |
+|     Hand     | VarInt enum  | 0: Main hand, 1: Off hand |
+
+#### 打开窗口
+
+当客户机应该打开一个窗口时，它被发送给客户机，比如箱子、工作台或熔炉。客户打开自己的背包时，不会向任何地方发送此消息。对于马，使用[打开马窗口](#打开马窗口)。
+
+| 包ID: `0x2F` |         状态: `Play`         |                        绑定到: 客户端                        |
+| :----------: | :--------------------------: | :----------------------------------------------------------: |
+| **字段名称** |         **字段类型**         |                           **备注**                           |
+|  Window ID   |            VarInt            | 要显示的窗口的唯一id值。Notchian服务器的实现是一个从1开始的计数器。 |
+| Window Type  |            VarInt            | 用于显示的窗口类型。包含在 `minecraft:menu` 注册表中；参见 [Inventory](https://wiki.vg/Inventory) 。 |
+| Window Title | [Chat](https://wiki.vg/Chat) |                          窗口的标题                          |
+
+#### 打开签名编辑器
+
+当客户端放置了签名并且允许发送时发送 [Update Sign](https://wiki.vg/Protocol#Update_Sign) 。在给定的位置必须已经有一个签名（客户机不会自动这样做）-首先发送一个 [Block Change](https://wiki.vg/Protocol#Block_Change) 。
+
+| 包ID: `0x30` | 状态: `Play` | 绑定到: 客户端 |
+| :----------: | :----------: | :------------: |
+| **字段名称** | **字段类型** |    **备注**    |
+|   Location   |   Position   |                |
+
+#### Craft Recipe Response
+
+Response to the serverbound packet ([Craft Recipe Request](https://wiki.vg/Protocol#Craft_Recipe_Request)), with the same recipe ID. Appears to be used to notify the UI.
+
+| Packet ID |   State    |  Bound To   | Field Name | Field Type | Notes |
+| :-------: | :--------: | :---------: | :--------: | :--------: | :---: |
+|   0x31    |    Play    |   Client    | Window ID  |    Byte    |       |
+|  Recipe   | Identifier | A recipe ID |            |            |       |
+
+
+
 未完待续
-
-
 
 From https://wiki.vg/Protocol
