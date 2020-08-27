@@ -97,7 +97,11 @@ Note: 本文是关于Minecraft Java版本([1.15.2, protocol578](Protocol_version
     - [打开书](#打开书)
     - [打开窗口](#打开窗口)
     - [打开签名编辑器](#打开签名编辑器)
-    - [Craft Recipe Response](#craft-recipe-response)
+    - [工艺配方应答](#工艺配方应答)
+    - [玩家能力 (客户端)](#玩家能力-客户端)
+    - [战斗事件](#战斗事件)
+    - [玩家信息](#玩家信息)
+    - [Face Player](#face-player)
 
 <!-- /TOC -->
 
@@ -1668,14 +1672,124 @@ Warning: 此页需要添加以下信息：现在生物群落是如何运作的�
 | **字段名称** | **字段类型** |    **备注**    |
 |   Location   |   Position   |                |
 
-#### Craft Recipe Response
+#### 工艺配方应答
 
-Response to the serverbound packet ([Craft Recipe Request](https://wiki.vg/Protocol#Craft_Recipe_Request)), with the same recipe ID. Appears to be used to notify the UI.
+对服务端 [工艺配方请求](#工艺配方请求) 包的应答，具有相同的配方ID。似乎用于通知UI。
 
-| Packet ID |   State    |  Bound To   | Field Name | Field Type | Notes |
-| :-------: | :--------: | :---------: | :--------: | :--------: | :---: |
-|   0x31    |    Play    |   Client    | Window ID  |    Byte    |       |
-|  Recipe   | Identifier | A recipe ID |            |            |       |
+| 包ID: `0x31` | 状态: `Play` | 绑定到: 客户端 |
+| :----------: | :----------: | :------------: |
+| **字段名称** | **字段类型** |    **备注**    |
+|  Window ID   |     Byte     |     窗口ID     |
+|    Recipe    |  Identifier  |     配方ID     |
+
+#### 玩家能力 (客户端)
+
+后两个浮点数分别表示视场和飞行速度，第一个字节用于确定4个布尔值。
+
+|      包ID: `0x32`      | 状态: `Play` |                        绑定到: 客户端                        |
+| :--------------------: | :----------: | :----------------------------------------------------------: |
+|      **字段名称**      | **字段类型** |                           **备注**                           |
+|         Flags          |     Byte     |                         位域，见下文                         |
+|      Flying Speed      |    Float     |                        默认为 `0.05`                         |
+| Field of View Modifier |    Float     | 修改视野，就像速度药水。Notchian服务器将使用与 [Entity Properties](https://wiki.vg/Protocol#Entity_Properties) 包中发送的移动速度相同的值，默认为 `0.1` 。 |
+
+关于 `Flags` 字段:
+
+|  <center>能力</center>  | <center>位</center> |
+| :---------------------: | :-----------------: |
+|          无敌           |        0x01         |
+|          飞行           |        0x02         |
+|        允许飞行         |        0x04         |
+| 创造模式 (瞬间摧毁方块) |        0x08         |
+
+#### 战斗事件
+
+在1.8版本以前用于twitch流媒体的元数据，现在只用于在屏幕上显示游戏（进入战斗和结束战斗被Notchain客户端完全忽略）
+
+| 包ID: `0x33` | 状态: `Play` |                绑定到: 客户端                 |
+| :----------: | :----------: | :-------------------------------------------: |
+| **字段名称** | **字段类型** |                   **备注**                    |
+|    Event     | VarInt Enum  | 确定剩余数据包的布局 |
+| *Extra* |              |*Extra*字段名称及内容完全由 `Event` 决定，见下文|
+
+|    <center>Event</center>    | <center>*Extra* (字段名)</center> |  <center>字段类型</center>   |                    <center>备注</center>                     |
+| :--------------------------: | :-------------------------------: | :--------------------------: | :----------------------------------------------------------: |
+|         0: 进入战斗          |             *无字段*              |           *无字段*           |                                                              |
+|   1: 结束战斗(包含2个字段)   |             Duration              |            VarInt            |                   以tick为单位的战斗时间。                   |
+|                              |             Entity ID             |             Int              | 结束战斗的主要对手的ID，如果没有明显的主要对手，则为 `-1` 。 |
+| 2: 在战斗中死亡(包含3个字段) |             Player ID             |            VarInt            |         死亡玩家的实体ID（应与客户端的实体ID匹配）。         |
+|                              |             Entity ID             |             Int              |        杀戮实体的ID，如果没有明显的杀手，则为 `-1` 。        |
+|                              |              Message              | [Chat](https://wiki.vg/Chat) |                           死亡消息                           |
+
+#### 玩家信息
+
+由服务端发送以更新用户列表（在客户端中按 `<tab>` 键可显示用户列表）。
+
+|   包ID: `0x34`    | 状态: `Play` |                  绑定到: 客户端                   |
+| :---------------: | :----------: | :-----------------------------------------------: |
+|   **字段名称**    | **字段类型** |                     **备注**                      |
+|      Action       |    VarInt    |         确定UUID之后的玩家格式的其余部分          |
+| Number Of Players |    VarInt    |                以下数组中的元素数                 |
+|   (Player)UUID    |    Array     |                    玩家的UUID                     |
+|  (Player)*Extra*  |              | *Extra*字段名称及内容完全由 `Action` 决定，见下文 |
+
+|   Action   |   *Extra*   | 字段类型 |                     备注                      |
+| :---------------: | :----------: | :-----------------------------------------------------: | :-----------------------------------------------------: |
+|     0: add player      |     Name  |                 String (16)       |                                              |
+|    |  Number Of Properties  |                VarInt                 |        以下数组中的元素数        |
+|                |        Property        |                 Name                  |                          数组                          |
+|                   |         Value     |            String (32767)             |                                                         |
+|               |     Is Signed |                Boolean                |  |
+|               |     Signature |        Optional String (32767)        |                仅当 `Is Signed` 为真                |
+|                |        Gamemode        |                VarInt                 |                                                         |
+|                    |          Ping          |                VarInt                 |                以毫秒为单位           |
+|        |    Has Display Name    |                Boolean                |  |
+|            |      Display Name      | (可选) [Chat](https://wiki.vg/Chat) | 仅当 `Has Display Name` 为真 |
+|   1: update gamemode   |   Gamemode   |               VarInt          |                                                   |
+|   2: update latency    |  Ping |                 VarInt            |                                                   |
+| 3: update display name | Has Display Name |           Boolean     |                                                  |
+|            |      Display Name      | (可选) [Chat](https://wiki.vg/Chat) |          仅当 `Has Display Name` 为真          |
+|    4: remove player    |    *无字段*    |                            |                       *无字段*                       |
+
+Property字段类似于[Mojang API#UUID -> 个人资料 + 皮肤/斗篷](Mojang_API.md#UUID_-%3E_%E4%B8%AA%E4%BA%BA%E8%B5%84%E6%96%99_+_%E7%9A%AE%E8%82%A4/%E6%96%97%E7%AF%B7)的响应，只是在这里使用的是协议格式而不是JSON。也就是说，每个玩家通常都有一个名为 `textures` 的属性，值是base64编码的JSON字符串，如[Mojang API#UUID -> 个人资料 + 皮肤/斗篷](Mojang_API.md#UUID_-%3E_%E4%B8%AA%E4%BA%BA%E8%B5%84%E6%96%99_+_%E7%9A%AE%E8%82%A4/%E6%96%97%E7%AF%B7)中所述。空的 `properties` 数组也是可以接受的，它将导致客户端根据UUID使用两个默认皮肤之一显示玩家。
+
+Ping值与图标的对应方式如下:
+
+- 如果ping为负（即服务器还不知道），则会导致“无连接”图标。
+
+- 低于150毫秒的ping将显示5个条
+
+- 低于300毫秒的ping将显示4个条
+
+- 低于600毫秒的ping将显示3个条
+
+- 低于1000毫秒（1秒）的ping将显示2个条
+
+- 大于或等于1秒的ping将显示1个条。
+
+#### Face Player
+
+Used to rotate the client player to face the given location or entity (for `/teleport [<targets>] <x> <y> <z> facing`).
+
+|    Packet ID     |        State         |                           Bound To                           | Field Name | Field Type | Notes |
+| :--------------: | :------------------: | :----------------------------------------------------------: | :--------: | :--------: | :---: |
+|       0x35       |         Play         |                            Client                            |            |            |       |
+|    Feet/eyes     |     VarInt enum      | Values are feet=0, eyes=1. If set to eyes, aims using the head position; otherwise aims using the feet position. |            |            |       |
+|     Target x     |        Double        |          x coordinate of the point to face towards           |            |            |       |
+|     Target y     |        Double        |          y coordinate of the point to face towards           |            |            |       |
+|     Target z     |        Double        |          z coordinate of the point to face towards           |            |            |       |
+|    Is entity     |       Boolean        | If true, additional information about an entity is provided. |            |            |       |
+|    Entity ID     |   Optional VarInt    |    Only if is entity is true — the entity to face towards    |            |            |       |
+| Entity feet/eyes | Optional VarInt enum | Whether to look at the entity's eyes or feet. Same values and meanings as before, just for the entity's head/feet. |            |            |       |
+
+If the entity given by entity ID cannot be found, this packet should be treated as if is entity was false.
+
+
+
+
+
+
+
 
 
 
