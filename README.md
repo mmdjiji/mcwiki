@@ -10,7 +10,7 @@ Minecraft Wiki 是对 [wiki.vg](https://wiki.vg) 的全站中文翻译，是 Min
 ## [在线阅读](https://mmdjiji.gitee.io/mcwiki)
 
 ## 中文翻译贡献者
-[吉吉](https://github.com/mmdjiji), [...]()
+[吉吉](https://github.com/mmdjiji), [Golden Pigeon](https://github.com/Golden-Pigeon), [...]()
 
 ## 加入我们
 您可以加入我们共同翻译本wiki，只需在GitHub上fork此项目，再提交PR。
