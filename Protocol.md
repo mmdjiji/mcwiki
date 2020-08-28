@@ -1733,9 +1733,9 @@ Warning: 此页需要添加以下信息：现在生物群落是如何运作的�
 |   (Player)UUID    |    Array     |                    玩家的UUID                     |
 |  (Player)*Extra*  |              | *Extra*字段名称及内容完全由 `Action` 决定，见下文 |
 
-|   Action   |   *Extra*   | 字段类型 |                     备注                      |
+|   <center>Action</center>   |   <center>*Extra*</center>   | <center>字段类型</center> |           <center>备注</center>              |
 | :---------------: | :----------: | :-----------------------------------------------------: | :-----------------------------------------------------: |
-|     0: add player      |     Name  |                 String (16)       |                                              |
+|     0: 添加玩家    |     Name  |                 String (16)       |                                              |
 |    |  Number Of Properties  |                VarInt                 |        以下数组中的元素数        |
 |                |        Property        |                 Name                  |                          数组                          |
 |                   |         Value     |            String (32767)             |                                                         |
@@ -1745,11 +1745,11 @@ Warning: 此页需要添加以下信息：现在生物群落是如何运作的�
 |                    |          Ping          |                VarInt                 |                以毫秒为单位           |
 |        |    Has Display Name    |                Boolean                |  |
 |            |      Display Name      | (可选) [Chat](https://wiki.vg/Chat) | 仅当 `Has Display Name` 为真 |
-|   1: update gamemode   |   Gamemode   |               VarInt          |                                                   |
-|   2: update latency    |  Ping |                 VarInt            |                                                   |
-| 3: update display name | Has Display Name |           Boolean     |                                                  |
+|   1: 更新gamemode   |   Gamemode   |               VarInt          |                                                   |
+|   2: 更新延迟  |  Ping |                 VarInt            |                                                   |
+| 3: 更新显示名 | Has Display Name |           Boolean     |                                                  |
 |            |      Display Name      | (可选) [Chat](https://wiki.vg/Chat) |          仅当 `Has Display Name` 为真          |
-|    4: remove player    |    *无字段*    |                            |                       *无字段*                       |
+|    4: 移除玩家    |    *无字段*    |                            |                       *无字段*                       |
 
 Property字段类似于[Mojang API#UUID -> 个人资料 + 皮肤/斗篷](Mojang_API.md#UUID_-%3E_%E4%B8%AA%E4%BA%BA%E8%B5%84%E6%96%99_+_%E7%9A%AE%E8%82%A4/%E6%96%97%E7%AF%B7)的响应，只是在这里使用的是协议格式而不是JSON。也就是说，每个玩家通常都有一个名为 `textures` 的属性，值是base64编码的JSON字符串，如[Mojang API#UUID -> 个人资料 + 皮肤/斗篷](Mojang_API.md#UUID_-%3E_%E4%B8%AA%E4%BA%BA%E8%B5%84%E6%96%99_+_%E7%9A%AE%E8%82%A4/%E6%96%97%E7%AF%B7)中所述。空的 `properties` 数组也是可以接受的，它将导致客户端根据UUID使用两个默认皮肤之一显示玩家。
 
@@ -1767,22 +1767,215 @@ Ping值与图标的对应方式如下:
 
 - 大于或等于1秒的ping将显示1个条。
 
-#### Face Player
+#### 旋转玩家
 
-Used to rotate the client player to face the given location or entity (for `/teleport [<targets>] <x> <y> <z> facing`).
+用于旋转玩家，使其面向给定的位置或实体（命令 `/teleport [<targets>] <x> <y> <z> facing`）
 
-|    Packet ID     |        State         |                           Bound To                           | Field Name | Field Type | Notes |
-| :--------------: | :------------------: | :----------------------------------------------------------: | :--------: | :--------: | :---: |
-|       0x35       |         Play         |                            Client                            |            |            |       |
-|    Feet/eyes     |     VarInt enum      | Values are feet=0, eyes=1. If set to eyes, aims using the head position; otherwise aims using the feet position. |            |            |       |
-|     Target x     |        Double        |          x coordinate of the point to face towards           |            |            |       |
-|     Target y     |        Double        |          y coordinate of the point to face towards           |            |            |       |
-|     Target z     |        Double        |          z coordinate of the point to face towards           |            |            |       |
-|    Is entity     |       Boolean        | If true, additional information about an entity is provided. |            |            |       |
-|    Entity ID     |   Optional VarInt    |    Only if is entity is true — the entity to face towards    |            |            |       |
-| Entity feet/eyes | Optional VarInt enum | Whether to look at the entity's eyes or feet. Same values and meanings as before, just for the entity's head/feet. |            |            |       |
+|   包ID: `0x35`   |     状态: `Play`     |                 绑定到: 客户端                 |
+| :--------------: | :------------------: | :--------------------------------------------: |
+|   **字段名称**   |     **字段类型**     |                    **备注**                    |
+|    Feet/eyes     |     VarInt enum      |   选择使用什么部位进行瞄准，脚=`0`，头=`1`。   |
+|     Target x     |        Double        |               朝向的点的 X 坐标                |
+|     Target y     |        Double        |               朝向的点的 Y 坐标                |
+|     Target z     |        Double        |               朝向的点的 Z 坐标                |
+|    Is entity     |       Boolean        |      如果为真，则提供有关实体的其他信息。      |
+|    Entity ID     |   Optional VarInt    |     (仅当 `Is entity` 为真时) 要面向的实体     |
+| Entity feet/eyes | Optional VarInt enum | 是看实体的头还是脚，取值范围及含义与上文相同。 |
 
-If the entity given by entity ID cannot be found, this packet should be treated as if is entity was false.
+如果找不到实体ID给定的实体，则应将此数据包视为 `Is entity` 为假
+
+#### 玩家位置与朝向 (客户端)
+
+更新玩家在服务器上的位置。当加入/重生时，该数据包还将导致“下载地形”屏幕的关闭。
+
+如果玩家在服务器上的最后一个已知位置与此数据包设置的新位置之间的距离大于100米，客户端将以 `You moved too quickly :( (Hacking?)` 的原因被踢出。
+
+此外，如果X或Z的定点数设置大于 `3.2E7D` ，客户将以 `Illegal position` 的原因被踢出。
+
+偏航是以度数来衡量的，不遵循经典的三角法则。XZ平面上的单位偏航圆从(0，1)开始逆时针旋转，在(-1，0)处为90度，在(0，-1)处为180度，在(1，0)处为270度。此外，偏航不固定在0到360度之间；任何数字都有效，包括负数和大于360度的数字。
+
+俯仰也是用度数来衡量的，其中0表示直视前方，-90读表示直视上方，+90度表示直视下方。
+
+| 包ID: `0x36` | 状态: `Play` |                        绑定到: 客户端                        |
+| :----------: | :----------: | :----------------------------------------------------------: |
+| **字段名称** | **字段类型** |                           **备注**                           |
+|      X       |    Double    |                绝对或相对位置，取决于 `Flags`                |
+|      Y       |    Double    |                绝对或相对位置，取决于 `Flags`                |
+|      Z       |    Double    |                绝对或相对位置，取决于 `Flags`                |
+|     Yaw      |    Float     |              X 轴上的绝对或相对旋转，以度为单位              |
+|    Pitch     |    Float     |              Y 轴上的绝对或相对旋转，以度为单位              |
+|    Flags     |     Byte     |                         位域，见下文                         |
+| Teleport ID  |    VarInt    | 客户端应使用[Teleport Confirm](https://wiki.vg/Protocol#Teleport_Confirm)确认此数据包，包含相同的传送ID |
+
+关于 `Flags` 字段:
+
+```markdown
+<Dinnerbone> 这是一个位域，X/Y/Z/Y_ROT/X_ROT。如果设置了X，则X值是相对的而不是绝对的。
+```
+
+| <center>字段</center> | <center>值</center> |
+| :-------------------: | :-----------------: |
+|           X           |        0x01         |
+|           Y           |        0x02         |
+|           Z           |        0x04         |
+|         Y_ROT         |        0x08         |
+|         X_ROT         |        0x10         |
+
+#### 解锁配方
+
+|            包ID: `0x37`            |                         状态: `Play`                         |                        绑定到: 客户端                        |
+| :--------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
+|            **字段名称**            |                         **字段类型**                         |                           **备注**                           |
+|               Action               |                            VarInt                            |                  0: init, 1: add, 2: remove                  |
+|     Crafting Recipe Book Open      |                           Boolean                            |      如果为真，则当玩家打开其背包时，工艺配方书将打开。      |
+| Crafting Recipe Book Filter Active |                           Boolean                            | 如果为真，则当玩家打开其背包时，工艺配方书的过滤选项处于活动状态。 |
+|     Smelting Recipe Book Open      |                           Boolean                            |      如果为真，则当玩家打开其背包时，熔炼配方书将打开。      |
+| Smelting Recipe Book Filter Active |                           Boolean                            | 如果为真，则当玩家打开其背包时，熔炼配方书的过滤选项处于活动状态。 |
+|            Array size 1            |                            VarInt                            |                      以下数组中的元素数                      |
+|             Recipe IDs             |                     Array of Identifier                      |                                                              |
+|            Array size 2            |                       Optional VarInt                        |         以下数组中的元素数，仅当mode为0时(init)出现          |
+|             Recipe IDs             | Optional Array of Identifier, only present if mode is 0 (init) |                                                              |
+
+关于 `Action` 字段:
+
+- 0 (init) = 列表2中的所有配方都将添加到配方书中。列表1中的所有配方将被标记为已显示，未标记的配方将显示在通知中。
+- 1 (add) = 列表中的所有配方都将被添加，它们的图标将显示在通知中。
+- 2 (remove) = 删除列表中的所有配方，这允许它们在重新读取时重新显示。
+
+#### 销毁实体
+
+当要在客户端上销毁实体列表时由服务器发送。
+
+| 包ID: `0x38` |  状态: `Play`   |   绑定到: 客户端   |
+| :----------: | :-------------: | :----------------: |
+| **字段名称** |  **字段类型**   |      **备注**      |
+|    Count     |     VarInt      | 以下数组中的元素数 |
+|  Entity IDs  | Array of VarInt |  要销毁的实体列表  |
+
+#### 移除实体效果
+
+| 包ID: `0x39` | 状态: `Play` |                        绑定到: 客户端                        |
+| :----------: | :----------: | :----------------------------------------------------------: |
+| **字段名称** | **字段类型** |                           **备注**                           |
+|  Entity ID   |    VarInt    |                            实体ID                            |
+|  Effect ID   |     Byte     | 参见[本表](http://minecraft.gamepedia.com/Status_effect%23List_of_effects) |
+
+#### 发送资源包
+
+| 包ID: `0x3A` |  状态: `Play`  |                        绑定到: 客户端                        |
+| :----------: | :------------: | :----------------------------------------------------------: |
+| **字段名称** |  **字段类型**  |                           **备注**                           |
+|     URL      | String (32767) |                       资源包的URL地址                        |
+|     Hash     |  String (40)   | 一个40个字符的十六进制[SHA-1](http://en.wikipedia.org/wiki/SHA-1)值（必须全为小写），为资源包的哈希文件。如果它不是一个40个字符的十六进制字符串，客户端将不会使用它进行哈希验证，并且可能会浪费带宽——但它仍将其视为唯一的id |
+
+#### 重生
+
+要更改玩家的维度（主世界/下界/末地），向他们发送一个具有适当维度的重生包，然后是新维度的预加载区块/区块，最后是一个位置和外观包。你不需要卸载区块，客户端会自动卸载。
+
+| 包ID: `0x3B` | 状态: `Play`  |                        绑定到: 客户端                        |
+| :----------: | :-----------: | :----------------------------------------------------------: |
+| **字段名称** | **字段类型**  |                           **备注**                           |
+|  Dimension   |   Int Enum    |                 -1: 下界, 0: 主世界, 1: 末地                 |
+| Hashed seed  |     Long      |              世界种子的SHA-256哈希的前8个字节。              |
+|   Gamemode   | Unsigned Byte | 0: 生存模式, 1: 创造模式, 2: 冒险模式, 3: 观察模式。 不包括核心标志 |
+|  Level Type  |  String (16)  |                与 [加入游戏](#加入游戏) 相同                 |
+
+Warning: 除非玩家死了，否则避免将玩家的维度更改为原来的维度。如果你将维度更改为他们已经在的维度，就会出现奇怪的错误，比如玩家无法攻击新世界中的其他玩家（直到他们死亡并重生）。如果你必须在同一维度重生一个玩家而不杀死他们，发送两个重生包，一个到另一个世界，然后另一个到你想要的世界。你不需要完成第一次重生，只需要发送两个包。
+
+#### 实体头朝向
+
+更改实体头部朝向的方向。
+
+当发送实体外观包改变头部的垂直旋转时，发送该包似乎是水平旋转头部所必需的。
+
+| 包ID: `0x3C` | 状态: `Play` |   绑定到: 客户端   |
+| :----------: | :----------: | :----------------: |
+| **字段名称** | **字段类型** |      **备注**      |
+|  Entity ID   |    VarInt    |       实体ID       |
+|   Head Yaw   |    Angle     | 新角度，不是三角形 |
+
+#### 选择高级选项卡
+
+由服务器发送，指示客户端应切换“高级”选项卡。在GUI中的客户端切换选项卡或在另一个选项卡中进行升级时发送。
+
+|    包ID: `0x3D`     |  状态: `Play`  |     绑定到: 客户端     |
+| :-----------------: | :------------: | :--------------------: |
+|    **字段名称**     |  **字段类型**  |        **备注**        |
+|       Has id        |    Boolean     | 指示是否存在下一个字段 |
+| Optional Identifier | String (32767) |        参见下方        |
+
+字段 `Optional Identifier` 可以是下列值之一:
+
+|   Optional Identifier    |
+| :----------------------: |
+|   minecraft:story/root   |
+|  minecraft:nether/root   |
+|    minecraft:end/root    |
+| minecraft:adventure/root |
+| minecraft:husbandry/root |
+
+如果没有发送标识符或标识符无效，客户端将切换到GUI中的第一个选项卡。
+
+#### 世界边界
+
+| 包ID: `0x3E` | 状态: `Play` |                  绑定到: 客户端                   |
+| :----------: | :----------: | :-----------------------------------------------: |
+| **字段名称** | **字段类型** |                     **备注**                      |
+|    Action    | VarInt Enum  |             确定数据包其余部分的格式              |
+|   *Extra*    |              | *Extra*字段名称及内容完全由 `Action` 决定，见下文 |
+
+| <center>Action</center> | <center>*Extra* (字段名)</center> |         <center>字段类型</center>       | <center>备注</center> |
+| :----------: | :----------: | :---------------------------------------------: | :--------: |
+|     0: 设置大小      |    Diameter    |                            Double                            |    世界边界单侧的长度，以米为单位    |
+|       1: 修改大小       |  Old Diameter  |                            Double                            | 世界边界单侧的当前长度，以米为单位 |
+|                         |           New Diameter            |          Double           | 世界边界单侧的目标长度，以米为单位 |
+|                         |               Speed               |          VarLong          | 达到新直径前的实时 *毫秒* 秒数。Notchian服务器的世界边界速度似乎不与tick时间同步，所以它与服务器延迟不同步。如果世界边界不移动，则设置为 `0` 。 |
+|      2: 设置中心     |       X        |                            Double                            |                                                              |
+|                         |     Z     | Double |                                                              |
+|      3: 初始化       |       X        |                            Double                            |                                                              |
+|                         |     Z     | Double |                                                              |
+|                         |           Old Diameter            |          Double           | 世界边界单侧的当前长度，以米为单位 |
+|                         |           New Diameter            |          Double           | 世界边界单侧的目标长度，以米为单位 |
+|                         |               Speed               |          VarLong          | 达到新直径前的实时 *毫秒* 秒数。Notchian服务器的世界边界速度似乎不与tick时间同步，所以它与服务器延迟不同步。如果世界边界不移动，则设置为 `0` 。 |
+|                         |     Portal Teleport Boundary      |          VarInt           | 从传送门传送得到的坐标限制为±值。通常为 `2999984` 。 |
+|                         |           Warning Time            |          VarInt           | 以秒为单位， 由`/worldborder warning time` 设置 |
+|                         |          Warning Blocks           |          VarInt           | 以米为单位 |
+| 4: 设置警告时间  |  Warning Time  |                            VarInt                            |       以秒为单位， 由`/worldborder warning time` 设置       |
+| 5: 设置警告方块 | Warning Blocks |                            VarInt                            |                          以米为单位                      |
+
+Notchian客户端通过比较较高的、警告距离或较低的值、当前直径到目标直径的距离或警告时间秒后边框所在的位置来确定显示警告的坚固程度。在伪代码中实现如下:
+
+```java
+distance = max(min(resizeSpeed * 1000 * warningTime, abs(targetDiameter - currentDiameter)), warningDistance);
+if (playerDistance < distance) {
+    warning = 1.0 - playerDistance / distance;
+} else {
+    warning = 0.0;
+}
+```
+
+设置玩家从中渲染的实体。当玩家在旁观者模式下左键单击实体时，通常使用此选项。
+
+#### Camera
+
+Sets the entity that the player renders from. This is normally used when the player left-clicks an entity while in spectator mode.
+
+The player's camera will move with the entity and look where it is looking. The entity is often another player, but can be any type of entity. The player is unable to move this entity (move packets will act as if they are coming from the other entity).
+
+If the given entity is not loaded by the player, this packet is ignored. To return control to the player, send this packet with their entity ID.
+
+The Notchian server resets this (sends it back to the default entity) whenever the spectated entity is killed or the player sneaks, but only if they were spectating an entity. It also sends this packet whenever the player switches out of spectator mode (even if they weren't spectating an entity).
+
+| Packet ID | State | Bound To | Field Name | Field Type |                     Notes                      |
+| :-------: | :---: | :------: | :--------: | :--------: | :--------------------------------------------: |
+|   0x3F    | Play  |  Client  | Camera ID  |   VarInt   | ID of the entity to set the client's camera to |
+
+The notchian also loads certain shaders for given entities:
+
+- Creeper → `shaders/post/creeper.json`
+- Spider (and cave spider) → `shaders/post/spider.json`
+- Enderman → `shaders/post/invert.json`
+- Anything else → the current shader is unloaded
 
 
 
